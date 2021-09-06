@@ -2,7 +2,7 @@
 
 ## Usage
 
-This application is written in [TypeScript](http://www.typescriptlang.org/).
+This application is written in [TypeScript](http://www.typescriptlang.org/)...
 
 You can develop, test, and build the application using various commands.
 

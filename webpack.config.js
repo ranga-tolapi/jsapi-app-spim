@@ -14,9 +14,7 @@ const path = require('path');
 
 // Application information.
 const title = 'SPIM Web Map';
-const description = 'SPIM Web Map Application';
 const themeColor = '#007ac2';
-const deployUrl = 'https://localhost:8080/';
 
 // HTML plugin options for index.ejs. Primarily for title and meta tags.
 // Mixes in...be careful.
@@ -29,11 +27,6 @@ const indexHtml = {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'theme-color': themeColor,
-    'og:url': deployUrl,
-    'og:type': 'website',
-    'og:site_name': title,
-    'og:title': title,
-    'og:description': description,
   },
 };
 

@@ -51,20 +51,20 @@ export default class App extends Widget {
 
     await view.when();
 
-    const searchContainer = document.querySelector('div[data-app-search]') as HTMLDivElement;
-    if (searchViewModel && !searchViewModel.view) {
-      searchViewModel.view = view;
-    }
-    searchViewModel
-      ? new Search({
-          view,
-          viewModel: searchViewModel,
-          container: searchContainer,
-        })
-      : new Search({
-          view,
-          container: searchContainer,
-        });
+    // const searchContainer = document.querySelector('div[data-app-search]') as HTMLDivElement;
+    // if (searchViewModel && !searchViewModel.view) {
+    //   searchViewModel.view = view;
+    // }
+    // searchViewModel
+    //   ? new Search({
+    //       view,
+    //       viewModel: searchViewModel,
+    //       container: searchContainer,
+    //     })
+    //   : new Search({
+    //       view,
+    //       container: searchContainer,
+    //     });
 
     const tablesContainer = document.querySelector('div[data-app-tables]') as HTMLDivElement;
     const calciteTabs = initFeatureTables(view as MapView);
@@ -76,10 +76,10 @@ export default class App extends Widget {
     return (
       <div class={CSS.base}>
         {/* header */}
-        <div class={CSS.header}>
+        {/* <div class={CSS.header}>
           <div class={CSS.headerTitle}>{title}</div>
           <div class={CSS.headerSearch} data-app-search=""></div>
-        </div>
+        </div> */}
 
         {/* view */}
         <div class={CSS.view} data-app-view=""></div>

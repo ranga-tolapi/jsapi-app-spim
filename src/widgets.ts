@@ -15,12 +15,16 @@ import Legend from '@arcgis/core/widgets/Legend';
 import { parseDxf } from './modules/dxfUtils';
 import Polygon from '@arcgis/core/geometry/Polygon';
 import PopupTemplate from '@arcgis/core/PopupTemplate';
+import Search from '@arcgis/core/widgets/Search';
 import ScaleBar from '@arcgis/core/widgets/ScaleBar';
 import * as watchUtils from '@arcgis/core/core/watchUtils';
 
 export function initWidgets(view: esri.MapView): esri.MapView {
   view.ui.add(
     [
+      new Search({
+        view: view,
+      }),
       new Expand({
         view: view,
         content: new LayerList({ view: view }),

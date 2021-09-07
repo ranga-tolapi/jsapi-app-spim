@@ -17,7 +17,6 @@ const title = 'SPIM Web Map';
 const description = 'SPIM Web Map Application';
 const themeColor = '#007ac2';
 const deployUrl = 'https://localhost:8080/';
-const appImageUrl = 'socialcard.png';
 
 // HTML plugin options for index.ejs. Primarily for title and meta tags.
 // Mixes in...be careful.
@@ -35,7 +34,6 @@ const indexHtml = {
     'og:site_name': title,
     'og:title': title,
     'og:description': description,
-    'og:image': appImageUrl,
   },
 };
 

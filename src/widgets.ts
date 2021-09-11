@@ -3,6 +3,7 @@ import Bookmarks from '@arcgis/core/widgets/Bookmarks';
 import ButtonMenuItem from '@arcgis/core/widgets/FeatureTable/Grid/support/ButtonMenuItem';
 import * as calciteUtils from './modules/calciteUtils';
 import CoordinateConversion from '@arcgis/core/widgets/CoordinateConversion';
+import CreateWorkflowData from '@arcgis/core/widgets/Editor/CreateWorkflowData';
 import CustomContent from '@arcgis/core/popup/content/CustomContent';
 import Editor from '@arcgis/core/widgets/Editor';
 import esriRequest from '@arcgis/core/request';
@@ -10,17 +11,23 @@ import Expand from '@arcgis/core/widgets/Expand';
 import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
 import * as featureLayerUtils from './modules/featureLayerUtils';
 import FeatureTable from '@arcgis/core/widgets/FeatureTable';
+import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import Home from '@arcgis/core/widgets/Home';
 import LayerList from '@arcgis/core/widgets/LayerList';
 import Legend from '@arcgis/core/widgets/Legend';
 import { parseDxf } from './modules/dxfUtils';
 import Polygon from '@arcgis/core/geometry/Polygon';
 import PopupTemplate from '@arcgis/core/PopupTemplate';
+import * as projection from '@arcgis/core/geometry/projection';
 import Search from '@arcgis/core/widgets/Search';
 import ScaleBar from '@arcgis/core/widgets/ScaleBar';
-import * as watchUtils from '@arcgis/core/core/watchUtils';
+import Graphic from '@arcgis/core/Graphic';
+
+let editor: Editor;
 
 export function initWidgets(view: esri.MapView): esri.MapView {
+  editor = new Editor({ view: view });
+
   view.ui.add(
     [
       new Search({
@@ -38,7 +45,7 @@ export function initWidgets(view: esri.MapView): esri.MapView {
       }),
       new Expand({
         view: view,
-        content: new Editor({ view: view }),
+        content: editor,
         group: 'top-right',
       }),
     ],
@@ -160,17 +167,27 @@ const featureTableSelectedRows = {
 };
 const popupTemplateSurveyRequests = new PopupTemplate({});
 
+let layerSurveyRequests: FeatureLayer;
+let layerLandParcel: FeatureLayer;
+
 export function initLayerPopupTemplates(view: esri.MapView) {
   // View is ready
   view.when().then(function () {
-    // Survey Requests Layer of Web Map
+    projection.load();
+
+    // 'Work Orders' Layer of Web Map
     const layerWorkOrders = view.map.layers.find((layer) => {
       return layer.title === 'Work Orders';
     }) as FeatureLayer;
 
-    // Survey Requests Layer of Web Map
-    const layerSurveyRequests = view.map.layers.find((layer) => {
+    // 'Survey Requests' Layer of Web Map
+    layerSurveyRequests = view.map.layers.find((layer) => {
       return layer.title === 'Survey Requests';
+    }) as FeatureLayer;
+
+    // 'SLA Cadastral Land Parcel' Layer of Web Map
+    layerLandParcel = view.map.layers.find((layer) => {
+      return layer.title === 'SLA Cadastral Land Parcel';
     }) as FeatureLayer;
 
     // Layer is ready
@@ -195,39 +212,44 @@ export function initLayerPopupTemplates(view: esri.MapView) {
 
       // Catch the edits made to FeatureTable
       layerSurveyRequests.on('edits', async (events) => {
-        if (events.addedFeatures.length > 0) {
-          const queryParams = layerSurveyRequests.createQuery();
-          queryParams.set({
-            outFields: ['*'],
-            objectIds: [events.addedFeatures[0].objectId],
-          });
-          const featureSet = await layerSurveyRequests.queryFeatures(queryParams);
+        if (events.addedFeatures.length === 0) {
+          return;
+        }
 
-          if (featureSet.features.length > 0) {
-            const addedFeature = featureSet.features[0];
-            console.log('addedFeature', addedFeature);
+        // Cancel the workflow
+        editor.viewModel.cancelWorkflow();
 
-            const crmUrl = `https://prod-13.southeastasia.logic.azure.com:443/workflows/75e35c787df74ae9803d8e831056c80d/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ONDU3ghDL0BXpy23bJiqboBMs2uNRoWGI-X4W5_NfxY`;
-            esriRequest(crmUrl, {
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: `{"ObjectID": "${addedFeature.getObjectId()}", 
-                        "CaseTitle": "${addedFeature.attributes.PLN_AREA_NAME}",
-                        "Customer": "${addedFeature.attributes.SURVEYOR}",
-                        "AreaName": "${addedFeature.attributes.PLN_AREA_NAME}",
-                        "Description": "${addedFeature.attributes.DESCRIPTION}"
-                      }`,
-              responseType: 'text',
-              method: 'post',
+        const queryParams = layerSurveyRequests.createQuery();
+        queryParams.set({
+          outFields: ['*'],
+          objectIds: [events.addedFeatures[0].objectId],
+        });
+        const featureSet = await layerSurveyRequests.queryFeatures(queryParams);
+
+        if (featureSet.features.length > 0) {
+          const addedFeature = featureSet.features[0];
+          console.log('addedFeature', addedFeature);
+
+          const crmUrl = `https://prod-13.southeastasia.logic.azure.com:443/workflows/75e35c787df74ae9803d8e831056c80d/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ONDU3ghDL0BXpy23bJiqboBMs2uNRoWGI-X4W5_NfxY`;
+          esriRequest(crmUrl, {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: `{"ObjectID": "${addedFeature.getObjectId()}", 
+                      "CaseTitle": "${addedFeature.attributes.PLN_AREA_NAME}",
+                      "Customer": "${addedFeature.attributes.SURVEYOR}",
+                      "AreaName": "${addedFeature.attributes.PLN_AREA_NAME}",
+                      "Description": "${addedFeature.attributes.DESCRIPTION}"
+                    }`,
+            responseType: 'text',
+            method: 'post',
+          })
+            .then((response) => {
+              console.log('response', response);
             })
-              .then((response) => {
-                console.log('response', response);
-              })
-              .catch((error) => {
-                console.error('esriRequest for CRM failed', error);
-              });
-          }
+            .catch((error) => {
+              console.error('esriRequest for CRM failed', error);
+            });
         }
       });
     });
@@ -257,6 +279,72 @@ export function initLayerPopupTemplates(view: esri.MapView) {
         graphic.layer.popupTemplate = customPopupTemplate;
       } else {
         graphic.layer.popupTemplate = popupTemplateSurveyRequests;
+      }
+    }
+  });
+
+  view.on('click', async (event) => {
+    // Action for mouse right-click event
+    if (event.button === 2) {
+      const featureRef = await featureLayerUtils.extractFeatureFromLayer(layerLandParcel, view.toMap(event));
+      if (featureRef) {
+        console.log('geometry', featureRef);
+        // layerSurveyRequests
+        //   .applyEdits({
+        //     addFeatures: [
+        //       new Graphic({
+        //         geometry: projection.project(
+        //           feature.geometry.clone(),
+        //           layerSurveyRequests.spatialReference,
+        //         ) as esri.Geometry,
+        //         attributes: {
+        //           PLN_AREA_NAME: `${feature.attributes.LOT_KEY}`,
+        //           SURVEYOR: 'SLA',
+        //           DESCRIPTION: 'Description',
+        //         },
+        //       }),
+        //     ],
+        //   })
+        //   .then((response) => {
+        //     console.log('response', response);
+        //   })
+        //   .catch((error) => {
+        //     console.error('error', error);
+        //   });
+
+        const feature = new Graphic({
+          geometry: projection.project(
+            featureRef.geometry.clone(),
+            layerSurveyRequests.spatialReference,
+          ) as esri.Geometry,
+          attributes: {
+            PLN_AREA_NAME: `${featureRef.attributes.LOT_KEY}`,
+            SURVEYOR: 'SLA',
+            DESCRIPTION: 'Description',
+            STATUS: 'Open',
+          },
+          sourceLayer: layerSurveyRequests,
+          symbol: editor.viewModel.sketchViewModel.polygonSymbol,
+        });
+        editor.viewModel.sketchViewModel.layer.add(feature);
+
+        editor
+          .startCreateWorkflowAtFeatureEdit(feature)
+          // .startCreateWorkflowAtFeatureTypeSelection()
+          // .startCreateWorkflowAtFeatureCreation({
+          //   layer: layerSurveyRequests,
+          //   template: layerSurveyRequests.templates[0]
+          // })
+          .then((response) => {
+            console.log('response', response);
+            (editor.activeWorkflow.data as CreateWorkflowData).creationInfo = {
+              layer: layerSurveyRequests,
+              template: layerSurveyRequests.templates[0],
+            };
+          })
+          .catch((error) => {
+            console.error('error', error);
+          });
       }
     }
   });

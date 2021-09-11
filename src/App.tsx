@@ -5,7 +5,6 @@ import { property, subclass } from '@arcgis/core/core/accessorSupport/decorators
 import { tsx } from '@arcgis/core/widgets/support/widget';
 import Widget from '@arcgis/core/widgets/Widget';
 import AppViewModel from 'app/App/AppViewModel';
-import Search from '@arcgis/core/widgets/Search';
 import { initFeatureTables } from './widgets';
 import MapView from '@arcgis/core/views/MapView';
 
@@ -51,21 +50,6 @@ export default class App extends Widget {
 
     await view.when();
 
-    // const searchContainer = document.querySelector('div[data-app-search]') as HTMLDivElement;
-    // if (searchViewModel && !searchViewModel.view) {
-    //   searchViewModel.view = view;
-    // }
-    // searchViewModel
-    //   ? new Search({
-    //       view,
-    //       viewModel: searchViewModel,
-    //       container: searchContainer,
-    //     })
-    //   : new Search({
-    //       view,
-    //       container: searchContainer,
-    //     });
-
     const tablesContainer = document.querySelector('div[data-app-tables]') as HTMLDivElement;
     const calciteTabs = initFeatureTables(view as MapView);
     tablesContainer.appendChild(calciteTabs);
@@ -75,12 +59,6 @@ export default class App extends Widget {
     const { title } = this;
     return (
       <div class={CSS.base}>
-        {/* header */}
-        {/* <div class={CSS.header}>
-          <div class={CSS.headerTitle}>{title}</div>
-          <div class={CSS.headerSearch} data-app-search=""></div>
-        </div> */}
-
         {/* view */}
         <div class={CSS.view} data-app-view=""></div>
 
